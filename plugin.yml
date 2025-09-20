@@ -1,0 +1,5 @@
+name: WDPEStates
+version: 1.0.1
+api: 5.11.0
+author: Zwuiix
+main: WDPEStates\Loader

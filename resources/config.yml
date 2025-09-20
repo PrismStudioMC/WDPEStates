@@ -1,0 +1,13 @@
+socket:
+  role: "server" # "server" or "client"
+
+  server: # server settings
+    host: "127.0.0.1"
+    port: 300
+    max_connections: 5
+    max_message_size: 1048576 # 1 MB
+
+  client: # client settings
+    host: "127.0.0.1"
+    port: -1 # -1 for auto port assignment
+    reconnect_interval: 5 # seconds
