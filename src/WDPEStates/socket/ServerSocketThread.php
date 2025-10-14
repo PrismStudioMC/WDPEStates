@@ -122,7 +122,7 @@ class ServerSocketThread extends Thread
             if (!empty($read) || !empty($write)) {
                 @stream_select($read, $write, $except, 0, 20000);
             } else {
-                usleep(20000);
+                $this->wait();
             }
 
             foreach ($read as $rs) {
@@ -160,7 +160,7 @@ class ServerSocketThread extends Thread
 
             foreach ($write as $ws) {
                 $id = (int)$ws;
-                $wbuf = & $clients[$id]['writeBuf'];
+                $wbuf = &$clients[$id]['writeBuf'];
                 if ($wbuf === "") {
                     continue;
                 }
@@ -221,13 +221,22 @@ class ServerSocketThread extends Thread
     private function readExact($sock, int $need): ?string
     {
         $buf = '';
+        $deadline = microtime(true) + 0.2;
+
         while (strlen($buf) < $need) {
             $chunk = @fread($sock, $need - strlen($buf));
+
             if ($chunk === false) {
                 return null;
             }
             if ($chunk === '' || $chunk === null) {
-                usleep(1000);
+                if (@feof($sock)) {
+                    return null;
+                }
+                if (microtime(true) > $deadline) {
+                    return null;
+                }
+                $this->wait();
                 continue;
             }
             $buf .= $chunk;
