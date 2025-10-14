@@ -3,6 +3,7 @@
 namespace WDPEStates\entries;
 
 use customiesdevs\customies\block\CustomiesBlockFactory;
+use Nexly\Mappings\BlockMappings;
 use pocketmine\network\mcpe\protocol\serializer\NetworkNbtSerializer;
 use pocketmine\network\mcpe\protocol\types\BlockPaletteEntry;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
@@ -15,12 +16,19 @@ class BlockPaletteGenerator
      */
     public static function getPayload(): string
     {
+        $entries = [];
+        if(class_exists(CustomiesBlockFactory::class)){
+            $entries = CustomiesBlockFactory::getInstance()->getAllBlockPaletteEntries();
+        } else if(class_exists(BlockMappings::class)) {
+            $entries = BlockMappings::getInstance()->getEntries();
+        }
+
         $array = array_map(function ($entry) {
             return [
                 "name" => $entry->getName(),
                 "states" => base64_encode($entry->getStates()->getEncodedNbt())
             ];
-        }, CustomiesBlockFactory::getInstance()->getBlockPaletteEntries()); // if you don't use customies adapt it to your block palette source
+        }, $entries); // if you don't use customies adapt it to your block palette source
 
         return json_encode($array, JSON_PRETTY_PRINT | JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
     }
