@@ -4,7 +4,9 @@ namespace WDPEStates\listener;
 
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerPreLoginEvent;
+use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\scheduler\ClosureTask;
+use pocketmine\Server;
 use WDPEStates\entries\BlockPaletteGenerator;
 use WDPEStates\entries\EntitesGenerator;
 use WDPEStates\entries\ItemsGenerator;
@@ -32,6 +34,7 @@ class DownstreamEventListener implements Listener
     /**
      * @param SocketPayloadReceiveEvent $ev
      * @return void
+     * @throws \JsonException
      */
     public function onPayloadReceive(SocketPayloadReceiveEvent $ev): void
     {
@@ -49,6 +52,23 @@ class DownstreamEventListener implements Listener
                     ["type" => "entity_entries", "data" => base64_encode(EntitesGenerator::getPayload())],
                     ["type" => "item_entries", "data" => base64_encode(ItemsGenerator::getPayload())]
                 )), 20);
+                break;
+            }
+            case "query_request":
+            {
+                $query = $this->loader->getServer()->getQueryInformation();
+                $this->loader->sendPayload([
+                    "type" => "query_response",
+                    "data" => [
+                        "host" => Server::getInstance()->getIp(),
+                        "port" => Server::getInstance()->getPort(),
+                        "servername" => $query->getServerName(),
+                        "world" => $query->getWorld(),
+                        "players" => $query->getPlayerCount(),
+                        "max_players" => $query->getMaxPlayerCount(),
+                        "whitelist" => $this->loader->getServer()->hasWhitelist(),
+                    ]
+                ]);
                 break;
             }
         }

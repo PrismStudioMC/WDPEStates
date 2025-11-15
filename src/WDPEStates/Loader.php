@@ -2,11 +2,11 @@
 
 namespace WDPEStates;
 
-use DateInvalidTimeZoneException;
 use Logger;
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\MainLogger;
+use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\Terminal;
 use pocketmine\utils\Timezone;
 use WDPEStates\events\SocketPayloadReceiveEvent;
@@ -18,6 +18,8 @@ use WDPEStates\socket\SocketSettings;
 
 class Loader extends PluginBase
 {
+    use SingletonTrait;
+
     public Logger $socketLogger;
     private ServerSocketThread|ClientSocketThread $socketThread;
     private SocketSettings $socketSettings;
@@ -35,6 +37,7 @@ class Loader extends PluginBase
      */
     protected function onLoad(): void
     {
+        self::setInstance($this);
         $this->saveDefaultConfig();
         $this->socketSettings = SocketSettings::fromArray($this->getConfig()->getAll());
     }
@@ -43,7 +46,7 @@ class Loader extends PluginBase
      * Start the socket thread when the plugin is enabled.
      *
      * @return void
-     * @throws DateInvalidTimeZoneException
+     * @throws \DateInvalidTimeZoneException
      */
     protected function onEnable(): void
     {
@@ -92,6 +95,13 @@ class Loader extends PluginBase
      */
     protected function onDisable(): void
     {
+        if ($this->socketSettings->role == "client") {
+            $this->sendPayload(['type' => 'shutdown', 'data' => [
+                "host" => $this->getServer()->getIp(),
+                "port" => $this->getServer()->getPort(),
+            ]]);
+        }
+
         $this->socketThread->quit(); // Gracefully stop the thread
     }
 
@@ -175,7 +185,6 @@ class Loader extends PluginBase
      *
      * @param array ...$payloads
      * @return void
-     * @throws \JsonException
      */
     public function sendPayload(array ...$payloads): void
     {

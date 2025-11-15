@@ -13,6 +13,8 @@ use pocketmine\network\mcpe\protocol\types\CacheableNbt;
 use pocketmine\network\mcpe\protocol\types\Experiments;
 use WDPEStates\entries\BlockPaletteGenerator;
 use WDPEStates\entries\ItemsGenerator;
+use WDPEStates\events\ServerQueryResponseEvent;
+use WDPEStates\events\ServerShutdownEvent;
 use WDPEStates\events\SocketPayloadReceiveEvent;
 use WDPEStates\Loader;
 
@@ -56,6 +58,7 @@ class UpstreamEventListener implements Listener
     {
         foreach ($event->getPackets() as $packet) {
             if ($packet instanceof StartGamePacket) {
+                $packet->blockNetworkIdsAreHashes = true;
                 $packet->levelSettings->experiments = $this->experiments;
                 $packet->blockPalette = $this->loader->blockPaletteEntries;
             } elseif ($packet instanceof ResourcePackStackPacket) {
@@ -67,7 +70,7 @@ class UpstreamEventListener implements Listener
     /**
      * @param SocketPayloadReceiveEvent $ev
      * @return void
-     * @throws \ReflectionException
+     * @throws \JsonException
      */
     public function onPayloadReceive(SocketPayloadReceiveEvent $ev): void
     {
@@ -103,6 +106,17 @@ class UpstreamEventListener implements Listener
                     $this->loader->socketLogger->info("Item entries updated. Total entries: " . ItemsGenerator::parsePayload(base64_decode($data)));
                     break;
                 }
+            case "query_response":
+            {
+                $ev = new ServerQueryResponseEvent($data);
+                $ev->call();
+                break;
+            }
+            case "shutdown": {
+                $ev = new ServerSHutdownEvent($data["host"], $data["port"]);
+                $ev->call();
+                break;
+            }
         }
     }
 }
